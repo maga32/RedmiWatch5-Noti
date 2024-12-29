@@ -1,0 +1,77 @@
+<template>
+  <div class="column page">
+    <text class="header">장치 통신 interconnect</text>
+    <div class="column group">
+
+      <input type="button" class="btn" @click="handleCreateConn" value="make connect" />
+      <input type="button" class="btn" @click="handleSendMessage" value="sene" />
+      <div>
+        <text class="font-14 mr-10">sendData: {{sendData}}</text>
+      </div>
+      <div>
+        <text class="font-14 mr-10">receiveData: {{receiveData}}</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+  import interconnect from '@system.interconnect'
+  let conn = null
+  export default {
+    private: {
+      sendData: '',
+      receiveData: ''
+    },
+    handleCreateConn() {
+      console.log('-------------연결 생성----------------')
+      conn = interconnect.instance()
+      conn.getReadyState({
+        success: data => {
+          if (data.status === 1) {
+            console.log('-----------------연결 성공-----------------')
+          } else if (data.status === 2) {
+            console.log('-----------------연결 실패-----------------')
+          }
+        },
+        fail: (data, code) => {
+          console.log(`-----------------getReadyState 처리 실패, 코드 = ${code}-----------------`)
+        }
+      })
+      conn.onmessage = (data) => {
+        console.log(`-----------------onmessage에서 메시지 수신-------------------: ${data.data}`)
+        this.receiveData = data.data
+      }
+      conn.onopen = () => {
+        console.log(`-----------------연결 열림-----------------`)
+      }
+      conn.onclose = (data) => {
+        console.log(`-----------------연결 닫힘, 이유 = ${data.data}, 코드 = ${data.code}-----------------`)
+      }
+      conn.onerror = (data) => {
+        console.log(`-----------------연결 오류, 에러 메시지 = ${data.data}, 에러 코드 = ${data.code}--------------`)
+      }
+    },
+    handleSendMessage() {
+      let data = {
+        name: 'Amy',
+        age: 18,
+        t: Date.now()
+      }
+      console.log('---------------메시지 전송---------------', data)
+      this.sendData = JSON.stringify(data)
+      conn.send({
+        data: data,
+        success: () => {
+          console.log(`----------------전송 처리 성공------------`)
+        },
+        fail: (data) => {
+          console.log(`--------------전송 처리 실패, 에러 메시지 = ${data.data}, 에러 코드 = ${data.code}-------------`)
+        },
+      })
+    }
+  }
+</script>
+
+<style>
+</style>
