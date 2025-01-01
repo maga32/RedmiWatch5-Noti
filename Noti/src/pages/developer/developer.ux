@@ -1,0 +1,41 @@
+<template>
+  <div class="main">
+    <div style="width: 100%;margin-bottom: 20px;margin-top: 0px">
+      <text class="font-40" style="width:20%; text-align: center" @click="back()">&lt;</text>
+      <text class="font-40" style="flex: 1; text-align: center">Developer</text>
+      <text style="width:20%"></text>
+    </div>
+    <scroll style="flex-direction: column;width: 100%;flex: 1" scroll-y="{{true}}">
+      <text class="br">Developer.</text>
+      <text class="br">SeungHwa</text>
+      <text class="br"></text>
+
+      <text class="br">RW5 Noti app info.</text>
+      <qrcode class="br" value="https://github.com/maga32/RedmiWatch5-Noti"></qrcode>
+      <text class="br">https://github.com/maga32/RedmiWatch5-Noti</text>
+      <text class="br"></text>
+
+      <text class="br">Developer site.</text>
+      <qrcode class="br" value="https://sung-a.duckdns.org"></qrcode>
+      <text class="br">https://sung-a.duckdns.org</text>
+    </scroll>
+    
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+
+export default {
+  private: {
+    list: [],
+  },
+  back() {
+    router.back()
+  },
+}
+</script>
+
+<style>
+  @import '../../common/common.css';
+</style>

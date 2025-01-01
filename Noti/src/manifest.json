@@ -1,5 +1,5 @@
 {
-  "package": "org.duckdns.sunga.re5noti",
+  "package": "org.duckdns.sunga.rw5noti",
   "name": "Noti",
   "versionName": "1.0.0",
   "versionCode": 1,
@@ -10,7 +10,10 @@
   ],
   "features": [
     { "name": "system.router" },
-    { "name": "system.interconnect" }
+    { "name": "system.interconnect" },
+    { "name": "system.file" },
+    { "name": "system.prompt" },
+    { "name": "system.vibrator" }
   ],
   "config": {
     "logLevel": "log",
@@ -22,8 +25,8 @@
       "pages/index": {
         "component": "index"
       },
-      "pages/detail": {
-        "component": "detail"
+      "pages/developer": {
+        "component": "developer"
       }
     }
   }

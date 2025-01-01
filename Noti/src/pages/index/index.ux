@@ -1,77 +1,172 @@
 <template>
-  <div class="column page">
-    <text class="header">장치 통신 interconnect</text>
-    <div class="column group">
-
-      <input type="button" class="btn" @click="handleCreateConn" value="make connect" />
-      <input type="button" class="btn" @click="handleSendMessage" value="sene" />
-      <div>
-        <text class="font-14 mr-10">sendData: {{sendData}}</text>
-      </div>
-      <div>
-        <text class="font-14 mr-10">receiveData: {{receiveData}}</text>
-      </div>
+  <div class="main">
+    <div style="width: 100%;margin-bottom: 20px;margin-top: 0px">
+      <text class="font-40" style="width:20%; text-align: center" @click="deleteToggle()">{{ !notis ? "" : deleteOn ? "X" : "-"}}</text>
+      <text class="font-40" style="flex: 1; text-align: center" @click="scrollToTop()">Noti :: {{notis}}</text>
+      <text class="font-40" style="width:20%; text-align: center" @click="developer()">i</text>
     </div>
+    <scroll id="scrollId" style="flex-direction: column;width: 100%;flex: 1" scroll-y="{{true}}">
+      <text class="item" if="{{deleteOn && notis}}" @click="deleteAll()">Delete All</text>
+      <text if="{{!notis}}">No Notification</text>
+      <div else for="(i, li) in list">
+        <text class="delete" if="{{deleteOn}}" @click="deleteOne(li, i)">DEL</text>
+        <image src="{{li.uri}}" />
+      </div>
+      <!--div>
+        <text style="width: 100%;margin-top: 100px;text-align: center">{{receivedText}}</text>
+      </div-->
+    </scroll>
+    
   </div>
 </template>
 
 <script>
-  import interconnect from '@system.interconnect'
-  let conn = null
-  export default {
-    private: {
-      sendData: '',
-      receiveData: ''
-    },
-    handleCreateConn() {
-      console.log('-------------연결 생성----------------')
-      conn = interconnect.instance()
-      conn.getReadyState({
-        success: data => {
-          if (data.status === 1) {
-            console.log('-----------------연결 성공-----------------')
-          } else if (data.status === 2) {
-            console.log('-----------------연결 실패-----------------')
-          }
-        },
-        fail: (data, code) => {
-          console.log(`-----------------getReadyState 처리 실패, 코드 = ${code}-----------------`)
+import app from '@system.app'
+import vibrator from '@system.vibrator' 
+import file from '@system.file'
+import interconnect from '@system.interconnect'
+import prompt from '@system.prompt' 
+import router from '@system.router'
+let conn = null
+
+export default {
+  private: {
+    list: [],
+    receivedText: "",
+    notis: 0,
+    deleteOn: false,
+    maxSave: 40,
+  },
+  onShow() {
+    const self = this
+    self.refreshList()
+
+    conn = interconnect.instance()
+    conn.onmessage = (data) => {
+      self.receivedText = `type : ${typeof(data.data)} / data : ${data.data}`
+      try{
+        const timestamp = Date.now()
+
+        self.refreshList()
+        while(self.notis >= self.maxSave) {
+          const lastNum = self.notis-1
+          self.deleteOne(self.list[lastNum], lastNum)
         }
-      })
-      conn.onmessage = (data) => {
-        console.log(`-----------------onmessage에서 메시지 수신-------------------: ${data.data}`)
-        this.receiveData = data.data
+
+        file.writeArrayBuffer({
+          uri: `internal://mass/noti/${timestamp}.png`,
+          buffer: self.base64ToUint8Array(data.data),
+          success: function() {
+            self.receivedText = `success noti!`
+            vibrator.vibrate({mode: 'long'})
+            vibrator.vibrate({mode: 'long'})
+            self.refreshList()
+          },
+          fail: function(data, code) {
+            self.receivedText = `fail noti! - ${data}`
+          }
+        })
+      } catch(e) {
+        self.receivedText = e+""
       }
-      conn.onopen = () => {
-        console.log(`-----------------연결 열림-----------------`)
-      }
-      conn.onclose = (data) => {
-        console.log(`-----------------연결 닫힘, 이유 = ${data.data}, 코드 = ${data.code}-----------------`)
-      }
-      conn.onerror = (data) => {
-        console.log(`-----------------연결 오류, 에러 메시지 = ${data.data}, 에러 코드 = ${data.code}--------------`)
-      }
-    },
-    handleSendMessage() {
-      let data = {
-        name: 'Amy',
-        age: 18,
-        t: Date.now()
-      }
-      console.log('---------------메시지 전송---------------', data)
-      this.sendData = JSON.stringify(data)
-      conn.send({
-        data: data,
-        success: () => {
-          console.log(`----------------전송 처리 성공------------`)
-        },
-        fail: (data) => {
-          console.log(`--------------전송 처리 실패, 에러 메시지 = ${data.data}, 에러 코드 = ${data.code}-------------`)
-        },
-      })
     }
-  }
+    
+  },
+  refreshList() {
+    const self = this
+    file.list({
+      uri: 'internal://mass/noti',
+      success: function(data) {
+        self.list = data.fileList
+        self.notis = self.list.length
+      },
+      fail: function(data, code) {
+        try {
+          self.receivedText = `fileList fail :: ${data}`
+        } catch(e) {
+          self.receivedText = `fileList fail :: ${e}`
+        }
+      },
+      complete: function() {
+        self.scrollToTop()
+      }
+    })
+  },
+  scrollToTop() {
+    this.$element('scrollId').scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
+  },
+  deleteToggle() {
+    this.deleteOn = !this.deleteOn
+  },
+  deleteAll() {
+    const self = this
+    if(self.list) {
+      self.list.forEach(li => self.deleteNoti(li))
+    }
+
+    prompt.showToast({
+      message: `Notification deleted.`,
+      duration: 2000
+    })
+
+    self.deleteToggle()
+    self.refreshList()
+  },
+  deleteOne(noti, num) {
+    this.deleteNoti(noti)
+    this.list.splice(num, 1)
+    this.notis -= 1
+    if(!this.notis) this.deleteToggle()
+  },
+  deleteNoti(noti) {
+    try {
+      file.delete({
+        uri: noti.uri,
+        success: function(data) {},
+        fail: function(data, code) {}
+      })
+    } catch(e) {}
+  },
+  developer() {
+    router.push({uri: "/pages/developer"})
+  },
+  onDestroy() {
+    app.terminate()
+  },
+
+  base64ToUint8Array(base64) {
+    const base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+    const base64Lookup = {}
+    for (let i=0; i<base64Chars.length; i++) base64Lookup[base64Chars[i]] = i
+    base64Lookup['='] = 0
+    const cleanBase64 = base64.replace(/[\s=]/g, '')
+    const byteLength = Math.floor((cleanBase64.length * 3) / 4)
+    const uint8Array = new Uint8Array(byteLength)
+
+    let byteIndex = 0
+    for (let i=0; i<cleanBase64.length; i+=4) {
+        const char1 = base64Lookup[cleanBase64[i]]
+        const char2 = base64Lookup[cleanBase64[i + 1]]
+        const char3 = base64Lookup[cleanBase64[i + 2]] || 0
+        const char4 = base64Lookup[cleanBase64[i + 3]] || 0
+
+        const byte1 = (char1 << 2) | (char2 >> 4)
+        const byte2 = ((char2 & 15) << 4) | (char3 >> 2)
+        const byte3 = ((char3 & 3) << 6) | char4
+
+        uint8Array[byteIndex++] = byte1
+        if (byteIndex < byteLength) uint8Array[byteIndex++] = byte2
+        if (byteIndex < byteLength) uint8Array[byteIndex++] = byte3
+    }
+
+    return uint8Array;
+  },
+}
 </script>
 
 <style>
+  @import '../../common/common.css';
 </style>
