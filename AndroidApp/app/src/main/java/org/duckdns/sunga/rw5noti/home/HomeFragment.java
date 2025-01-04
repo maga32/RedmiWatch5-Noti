@@ -8,6 +8,8 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -31,11 +33,22 @@ import org.duckdns.sunga.rw5noti.databinding.FragmentMessageBinding;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public class HomeFragment extends Fragment {
 
+    private static final Set<String> ALLOWED_SYSTEM_APP
+        = new HashSet<>(Set.of(
+            "com.android.chrome",                       // chrome
+            "com.google.android.gm",                    // gmail
+            "com.google.android.googlequicksearchbox",  // google
+            "com.android.vending",                      // playstore
+            "com.google.android.youtube",               // youtube
+            "com.samsung.android.messaging",            // (갤럭시)메세지
+            "com.sec.android.app.samsungapps"           // (갤럭시)스토어
+        ));
     private MessageViewModel dashboardViewModel;
     private SharedPreferences sharedPreferences;
     private FragmentMessageBinding binding;
@@ -87,11 +100,35 @@ public class HomeFragment extends Fragment {
             if (curNode != null) {
                 // 테스트용 알림 만들기
                 String imgString = createNotificationImage(testAppIcon , "테스트앱", "타이틀", "알림 테스트입니다.");
+
                 System.out.println(imgString);
 
-                messageApi.sendMessage(curNode.id, imgString.getBytes(StandardCharsets.UTF_8))
-                        .addOnSuccessListener(aVoid -> Toast.makeText(getActivity(), "알림전송 성공", Toast.LENGTH_LONG).show())
-                        .addOnFailureListener(e -> Toast.makeText(getActivity(), "알림전송 실패 : " + e.getMessage(), Toast.LENGTH_LONG).show());
+                ArrayList<String> chunkList = new ArrayList<>();
+                int chunkSize = 20000;
+                String timeStamp = String.valueOf(System.currentTimeMillis());
+
+                for (int start = 0; start < imgString.length(); start += chunkSize) {
+                    int end = Math.min(start + chunkSize, imgString.length());
+                    // 데이터구분(1) 일반은 d 끝은 e / timeStamp파일명(13) / 데이터(최대20000)
+                    String chunk = (end == imgString.length() ? "e" : "d") + timeStamp + imgString.substring(start, end);
+                    chunkList.add(chunk);
+                }
+
+                nodeApi.launchWearApp(curNode.id, "/index")
+                    .addOnSuccessListener(data -> {
+
+                        for(String chuck : chunkList) {
+                            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                                messageApi.sendMessage(curNode.id, chuck.getBytes(StandardCharsets.UTF_8))
+                                    .addOnSuccessListener(aVoid -> Toast.makeText(getActivity(), "알림전송 성공", Toast.LENGTH_LONG).show())
+                                    .addOnFailureListener(e -> Toast.makeText(getActivity(), "알림전송 실패 : " + e.getMessage(), Toast.LENGTH_LONG).show());
+                            }, 1500);
+                        }
+
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(getActivity(), "앱열기 실패 : " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    });
             }
         });
 
@@ -143,11 +180,12 @@ public class HomeFragment extends Fragment {
         PackageManager pm = requireContext().getPackageManager();
         List<AppInfo> apps = new ArrayList<>();
         List<ApplicationInfo> packages = pm.getInstalledApplications(PackageManager.GET_META_DATA);
+        Set<String> li = new HashSet<>();
 
         for (ApplicationInfo packageInfo : packages) {
-            if ((packageInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0) {
+            String packageName = packageInfo.packageName;
+            if ((packageInfo.flags & ApplicationInfo.FLAG_SYSTEM) == 0 || ALLOWED_SYSTEM_APP.contains(packageName)) {
                 String appName = packageInfo.loadLabel(pm).toString();
-                String packageName = packageInfo.packageName;
                 android.graphics.drawable.Drawable icon = packageInfo.loadIcon(pm);
                 apps.add(new AppInfo(appName, packageName, icon));
             }

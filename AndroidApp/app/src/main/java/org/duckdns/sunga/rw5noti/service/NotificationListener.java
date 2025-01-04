@@ -20,6 +20,7 @@ import com.xiaomi.xms.wearable.node.NodeApi;
 import org.duckdns.sunga.rw5noti.R;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 
 public class NotificationListener extends NotificationListenerService {
 
@@ -75,6 +76,16 @@ public class NotificationListener extends NotificationListenerService {
                     android.graphics.drawable.Drawable appIcon = app.loadIcon(pm);
 
                     String pngString = NotificationUtils.createNotificationImage(appIcon, appName, notificationTitle, notificationText);
+                    ArrayList<String> chunkList = new ArrayList<>();
+                    int chunkSize = 20000;
+                    String timeStamp = String.valueOf(System.currentTimeMillis());
+
+                    for (int start = 0; start < pngString.length(); start += chunkSize) {
+                        int end = Math.min(start + chunkSize, pngString.length());
+                        // 데이터구분(1) 일반은 d 끝은 e / timeStamp파일명(13) / 데이터(최대20000)
+                        String chunk = (end == pngString.length() ? "e" : "d") + timeStamp + pngString.substring(start, end);
+                        chunkList.add(chunk);
+                    }
 
                     nodeApi = Wearable.getNodeApi(getApplicationContext());
                     messageApi = Wearable.getMessageApi(getApplicationContext());
@@ -85,11 +96,13 @@ public class NotificationListener extends NotificationListenerService {
                                 nodeApi.launchWearApp(nodes.get(0).id, "/index")
                                     .addOnSuccessListener(data -> {
 
-                                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                                            messageApi.sendMessage(nodes.get(0).id, pngString.getBytes(StandardCharsets.UTF_8))
+                                        for(String chuck : chunkList) {
+                                            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                                                messageApi.sendMessage(nodes.get(0).id, chuck.getBytes(StandardCharsets.UTF_8))
                                                     .addOnSuccessListener(aVoid -> Log.d("realSend", "알림전송 성공"))
                                                     .addOnFailureListener(e -> Log.d("realSend", "알림전송 실패"));
-                                        }, 1500);
+                                            }, 1500);
+                                        }
 
                                     });
 

@@ -36,36 +36,61 @@ export default {
     notis: 0,
     deleteOn: false,
     maxSave: 40,
+    receivedData: {},
+    inProcessing: false,
   },
   onShow() {
     const self = this
     self.refreshList()
 
     conn = interconnect.instance()
-    conn.onmessage = (data) => {
-      self.receivedText = `type : ${typeof(data.data)} / data : ${data.data}`
-      try{
-        const timestamp = Date.now()
+    conn.onmessage = async(data) => {
+      // 진행중이라면 대기
+      while (self.inProcessing) {
+        console.log("Processing... waiting...")
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      }
 
-        self.refreshList()
-        while(self.notis >= self.maxSave) {
-          const lastNum = self.notis-1
-          self.deleteOne(self.list[lastNum], lastNum)
+      self.receivedText = `type : ${typeof(data.data)} / data : ${data.data}`
+
+      // 데이터구분(1) 일반은 d 끝은 e / timeStamp파일명(13) / 데이터(최대20000)
+      try{
+        const processedData = {
+          isEnd: (data.data.substr(0, 1) == "e"),
+          fileName: data.data.substr(1, 13),
         }
 
-        file.writeArrayBuffer({
-          uri: `internal://mass/noti/${timestamp}.png`,
-          buffer: self.base64ToUint8Array(data.data),
-          success: function() {
-            self.receivedText = `success noti!`
-            vibrator.vibrate({mode: 'long'})
-            vibrator.vibrate({mode: 'long'})
-            self.refreshList()
-          },
-          fail: function(data, code) {
-            self.receivedText = `fail noti! - ${data}`
+        self.inProcessing = true
+        if(!self.receivedData[processedData.fileName]) self.receivedData[processedData.fileName] = ''
+        self.receivedData[processedData.fileName] += await data.data.substr(14)
+        self.inProcessing = false
+
+        if(processedData.isEnd) {
+          self.refreshList()
+          while(self.notis >= self.maxSave) {
+            const lastNum = self.notis-1
+            self.deleteOne(self.list[lastNum], lastNum)
           }
-        })
+
+          file.writeArrayBuffer({
+            uri: `internal://mass/noti/${processedData.fileName}.png`,
+            buffer: self.dataProcess(self.receivedData[processedData.fileName]),
+            success: function() {
+              self.receivedText = `success noti!`
+              if(processedData.isEnd) {
+                vibrator.vibrate({mode: 'long'})
+                vibrator.vibrate({mode: 'long'})
+                self.refreshList()
+              }
+            },
+            fail: function(data, code) {
+              self.receivedText = `fail noti! - ${data}`
+            },
+            complete: function() {
+              delete self.receivedData[processedData.fileName]
+            }
+          })
+        }
       } catch(e) {
         self.receivedText = e+""
       }
@@ -137,7 +162,7 @@ export default {
     app.terminate()
   },
 
-  base64ToUint8Array(base64) {
+  dataProcess(base64) {
     const base64Chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
     const base64Lookup = {}
     for (let i=0; i<base64Chars.length; i++) base64Lookup[base64Chars[i]] = i
