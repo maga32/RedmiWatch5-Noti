@@ -64,8 +64,11 @@ public class NotificationListener extends NotificationListenerService {
 
             // 체크된 앱의 알림만 처리
             if (isChecked) {
-                String notificationTitle = sbn.getNotification().extras.getCharSequence("android.title", "").toString();
-                String notificationText = sbn.getNotification().extras.getCharSequence("android.text", "").toString();
+                // 미디어재생이면 패스
+                if("android.app.Notification$MediaStyle".equals(sbn.getNotification().extras.getCharSequence(Notification.EXTRA_TEMPLATE, "").toString())) return;
+
+                String notificationTitle = sbn.getNotification().extras.getCharSequence(Notification.EXTRA_TITLE, "").toString();
+                String notificationText = sbn.getNotification().extras.getCharSequence(Notification.EXTRA_TEXT, "").toString();
 
                 if (notificationText.isEmpty()) return;
 
