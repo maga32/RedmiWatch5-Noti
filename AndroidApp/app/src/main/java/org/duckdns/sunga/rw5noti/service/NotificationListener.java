@@ -64,8 +64,8 @@ public class NotificationListener extends NotificationListenerService {
 
             // 체크된 앱의 알림만 처리
             if (isChecked) {
-                String notificationTitle = sbn.getNotification().extras.getString("android.title", "");
-                String notificationText = sbn.getNotification().extras.getString("android.text", "");
+                String notificationTitle = sbn.getNotification().extras.getCharSequence("android.title", "").toString();
+                String notificationText = sbn.getNotification().extras.getCharSequence("android.text", "").toString();
 
                 if (notificationText.isEmpty()) return;
 
@@ -79,11 +79,12 @@ public class NotificationListener extends NotificationListenerService {
                     ArrayList<String> chunkList = new ArrayList<>();
                     int chunkSize = 20000;
                     String timeStamp = String.valueOf(System.currentTimeMillis());
+                    int offset = 0;
 
                     for (int start = 0; start < pngString.length(); start += chunkSize) {
                         int end = Math.min(start + chunkSize, pngString.length());
-                        // 데이터구분(1) 일반은 d 끝은 e / timeStamp파일명(13) / 데이터(최대20000)
-                        String chunk = (end == pngString.length() ? "e" : "d") + timeStamp + pngString.substring(start, end);
+                        // 오프셋(2) / 데이터구분(1) 일반은 d 끝은 e / timeStamp파일명(13) / 데이터(최대20000)
+                        String chunk = String.format("%02d", offset++) + (end == pngString.length() ? "e" : "d") + timeStamp + pngString.substring(start, end);
                         chunkList.add(chunk);
                     }
 
@@ -95,15 +96,15 @@ public class NotificationListener extends NotificationListenerService {
                             if (!nodes.isEmpty()) {
                                 nodeApi.launchWearApp(nodes.get(0).id, "/index")
                                     .addOnSuccessListener(data -> {
+                                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
 
-                                        for(String chuck : chunkList) {
-                                            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                                            for(String chuck : chunkList) {
                                                 messageApi.sendMessage(nodes.get(0).id, chuck.getBytes(StandardCharsets.UTF_8))
                                                     .addOnSuccessListener(aVoid -> Log.d("realSend", "알림전송 성공"))
                                                     .addOnFailureListener(e -> Log.d("realSend", "알림전송 실패"));
-                                            }, 1500);
-                                        }
+                                            }
 
+                                        }, 1500);
                                     });
 
                             }

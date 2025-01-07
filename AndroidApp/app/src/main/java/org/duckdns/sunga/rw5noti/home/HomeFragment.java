@@ -106,25 +106,26 @@ public class HomeFragment extends Fragment {
                 ArrayList<String> chunkList = new ArrayList<>();
                 int chunkSize = 20000;
                 String timeStamp = String.valueOf(System.currentTimeMillis());
+                int offset = 0;
 
                 for (int start = 0; start < imgString.length(); start += chunkSize) {
                     int end = Math.min(start + chunkSize, imgString.length());
-                    // 데이터구분(1) 일반은 d 끝은 e / timeStamp파일명(13) / 데이터(최대20000)
-                    String chunk = (end == imgString.length() ? "e" : "d") + timeStamp + imgString.substring(start, end);
+                    // 오프셋(2) / 데이터구분(1) 일반은 d 끝은 e / timeStamp파일명(13) / 데이터(최대20000)
+                    String chunk = String.format("%02d", offset++) + (end == imgString.length() ? "e" : "d") + timeStamp + imgString.substring(start, end);
                     chunkList.add(chunk);
                 }
 
                 nodeApi.launchWearApp(curNode.id, "/index")
                     .addOnSuccessListener(data -> {
+                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
 
-                        for(String chuck : chunkList) {
-                            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                            for(String chuck : chunkList) {
                                 messageApi.sendMessage(curNode.id, chuck.getBytes(StandardCharsets.UTF_8))
                                     .addOnSuccessListener(aVoid -> Toast.makeText(getActivity(), "알림전송 성공", Toast.LENGTH_LONG).show())
                                     .addOnFailureListener(e -> Toast.makeText(getActivity(), "알림전송 실패 : " + e.getMessage(), Toast.LENGTH_LONG).show());
-                            }, 1500);
-                        }
+                            }
 
+                        }, 1500);
                     })
                     .addOnFailureListener(e -> {
                         Toast.makeText(getActivity(), "앱열기 실패 : " + e.getMessage(), Toast.LENGTH_LONG).show();

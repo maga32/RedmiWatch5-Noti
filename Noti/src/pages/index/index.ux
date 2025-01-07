@@ -37,7 +37,6 @@ export default {
     deleteOn: false,
     maxSave: 40,
     receivedData: {},
-    inProcessing: false,
   },
   onShow() {
     const self = this
@@ -45,26 +44,39 @@ export default {
 
     conn = interconnect.instance()
     conn.onmessage = async(data) => {
-      // 진행중이라면 대기
-      while (self.inProcessing) {
-        console.log("Processing... waiting...")
-        await new Promise(resolve => setTimeout(resolve, 1000))
-      }
-
       self.receivedText = `type : ${typeof(data.data)} / data : ${data.data}`
 
-      // 데이터구분(1) 일반은 d 끝은 e / timeStamp파일명(13) / 데이터(최대20000)
+      // 오프셋(2) / 데이터구분(1) 일반은 d 끝은 e / timeStamp파일명(13) / 데이터(최대20000)
+      // 01      / 2                        / 3456789 10 11 12 13 14 15 / 16 ~
       try{
         const processedData = {
-          isEnd: (data.data.substr(0, 1) == "e"),
-          fileName: data.data.substr(1, 13),
+          offset: Number(data.data.substr(0, 2)),
+          isEnd: (data.data.substr(2, 1) == "e"),
+          fileName: data.data.substr(3, 13),
         }
 
-        self.inProcessing = true
-        if(!self.receivedData[processedData.fileName]) self.receivedData[processedData.fileName] = ''
-        self.receivedData[processedData.fileName] += await data.data.substr(14)
-        self.inProcessing = false
+        if(!self.receivedData[processedData.fileName]) self.receivedData[processedData.fileName] = {dataString: '', savedList: []}
+        
+        if(processedData.offset != 0) {
+          let loop = 0
+          // 첫 chunk가 아니라면 이전 chunk 적재시까지 대기
+          while (!self.receivedData[processedData.fileName].savedList.includes(processedData.offset-1)) {
+            await new Promise(resolve => setTimeout(resolve, 1000))
+            loop++
 
+            if(loop > 100) {
+              delete self.receivedData[processedData.fileName]
+              throw new Error('Chunks are not fully received over 100 seconds')
+            }
+
+          }
+        }
+
+        // data에 추가하고 offset 기록
+        self.receivedData[processedData.fileName].dataString += await data.data.substr(16)
+        self.receivedData[processedData.fileName].savedList.push(processedData.offset)
+
+        // 마지막 chunk인 경우
         if(processedData.isEnd) {
           self.refreshList()
           while(self.notis >= self.maxSave) {
@@ -74,13 +86,12 @@ export default {
 
           file.writeArrayBuffer({
             uri: `internal://mass/noti/${processedData.fileName}.png`,
-            buffer: self.dataProcess(self.receivedData[processedData.fileName]),
+            buffer: self.dataProcess(self.receivedData[processedData.fileName].dataString),
             success: function() {
-              self.receivedText = `success noti!`
+              // self.receivedText = `success noti!`
               if(processedData.isEnd) {
                 vibrator.vibrate({mode: 'long'})
                 vibrator.vibrate({mode: 'long'})
-                self.refreshList()
               }
             },
             fail: function(data, code) {
@@ -88,6 +99,7 @@ export default {
             },
             complete: function() {
               delete self.receivedData[processedData.fileName]
+              self.refreshList()
             }
           })
         }
@@ -167,8 +179,11 @@ export default {
     const base64Lookup = {}
     for (let i=0; i<base64Chars.length; i++) base64Lookup[base64Chars[i]] = i
     base64Lookup['='] = 0
-    const cleanBase64 = base64.replace(/[\s=]/g, '')
-    const byteLength = Math.floor((cleanBase64.length * 3) / 4)
+
+    const cleanBase64 = base64.replace(/\s/g, '')
+
+    const padding = (cleanBase64.endsWith('==') ? 2 : cleanBase64.endsWith('=') ? 1 : 0)
+    const byteLength = Math.floor((cleanBase64.length * 3) / 4) - padding
     const uint8Array = new Uint8Array(byteLength)
 
     let byteIndex = 0
