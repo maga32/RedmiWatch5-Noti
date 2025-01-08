@@ -40,3 +40,19 @@ text {
 .br {
   margin-bottom: 10px;
 }
+
+.brbr {
+  margin-bottom: 20px;
+}
+
+.font-30 {
+ font-size: 30px; 
+}
+
+.font-35 {
+ font-size: 35px; 
+}
+
+.font-40 {
+ font-size: 40px; 
+}

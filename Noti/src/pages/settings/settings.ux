@@ -1,0 +1,101 @@
+<template>
+  <div class="main">
+    <div style="width: 100%;margin-bottom: 20px;margin-top: 0px">
+      <text class="font-40" style="width:20%; text-align: center" @click="back()">&lt;</text>
+      <text class="font-30" style="flex: 1; text-align: center">Settings</text>
+      <text class="font-40" style="width:20%; text-align: center" @click="developer()">D</text>
+    </div>
+    <scroll style="flex-direction: column;width: 100%;flex: 1" scroll-y="{{true}}">
+      <div class="brbr" style="flex-direction: row;">
+        <text style="flex: 1;">Vibration</text>
+        <switch checked="{{ setting.vibe }}" class="switch" @change="()=>{setting.vibe = !setting.vibe}"></switch>
+      </div>
+      <div if="{{ setting.vibe }}">
+        <text style="flex: 1;">Do Not Disturb</text>
+        <switch checked="{{ setting.doNotDisturb }}" class="switch" @change="()=>{setting.doNotDisturb = !setting.doNotDisturb}"></switch>
+      </div>
+      <div if="{{ setting.vibe && setting.doNotDisturb }}" style="flex-direction: column;">
+        <text class="brbr">( {{setting.disturbFromT}} : {{setting.disturbFromM}} ~ {{setting.disturbToT}} : {{setting.disturbToM}} )</text>
+
+        <text>From:</text>
+        <picker class="picker brbr" type="time" selected="{{setting.disturbFromT+':'+setting.disturbFromM}}" onchange="disturbFrom"></picker>
+  
+        <text>To:</text>
+        <picker class="picker brbr" type="time" selected="{{setting.disturbToT+':'+setting.disturbToM}}" onchange="disturbTo"></picker>
+      </div>
+    </scroll>
+    
+  </div>
+</template>
+
+<script>
+import router from '@system.router'
+import storage from '@system.storage'
+
+export default {
+  private: {
+    setting: {
+      vibe: true,
+      doNotDisturb: false,
+      disturbFromT: "00",
+      disturbFromM: "00",
+      disturbToT: "00",
+      disturbToM: "00",
+    },
+  },
+  onShow() {
+    const self = this
+    storage.get({
+      key: 'notiSetting',
+      success: function(getData) {
+        if(!getData) getData = '{"vibe":true,"doNotDisturb":false,"disturbFromT":"00","disturbFromM":"00","disturbToT":"00","disturbToM":"00"}'
+        let setting = JSON.parse(getData)
+        self.setting = setting
+      },
+      fail: function(getData, code) {
+        console.log(`getData fail, code = ${code}`)
+      }
+    })
+  },
+  disturbFrom(data) {
+    this.setting.disturbFromT = data.hour.toString().padStart(2, '0')
+    this.setting.disturbFromM = data.minute.toString().padStart(2, '0')
+  },
+  disturbTo(data) {
+    this.setting.disturbToT = data.hour.toString().padStart(2, '0')
+    this.setting.disturbToM = data.minute.toString().padStart(2, '0')
+  },
+  back() {
+    this.save()
+    router.back()
+  },
+  developer() {
+    this.save()
+    router.push({uri: "/pages/developer"})
+  },
+  save() {
+    const self = this
+    storage.set({
+      key: 'notiSetting',
+      value: JSON.stringify(self.setting),
+      success: function(setData) {
+        console.log('setData success!!! ', setData)
+      },
+      fail: function(setData, code) {
+        console.log('setData fail!!! ', setData)
+      }
+    })
+  },
+}
+</script>
+
+<style>
+  @import '../../common/common.css';
+  .picker {
+    font-size: 25px;
+    color: #fff;
+    selected-font-size: 40px;
+    selected-color: #09f;
+    selected-background-color: #ccc;
+  }
+</style>

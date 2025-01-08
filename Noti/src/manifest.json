@@ -12,6 +12,7 @@
     { "name": "system.router" },
     { "name": "system.interconnect" },
     { "name": "system.file" },
+    { "name": "system.storage" },
     { "name": "system.prompt" },
     { "name": "system.vibrator" }
   ],
@@ -24,6 +25,9 @@
     "pages": {
       "pages/index": {
         "component": "index"
+      },
+      "pages/settings": {
+        "component": "settings"
       },
       "pages/developer": {
         "component": "developer"

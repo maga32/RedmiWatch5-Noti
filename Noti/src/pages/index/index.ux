@@ -2,8 +2,8 @@
   <div class="main">
     <div style="width: 100%;margin-bottom: 20px;margin-top: 0px">
       <text class="font-40" style="width:20%; text-align: center" @click="deleteToggle()">{{ !notis ? "" : deleteOn ? "X" : "-"}}</text>
-      <text class="font-40" style="flex: 1; text-align: center" @click="scrollToTop()">Noti :: {{notis}}</text>
-      <text class="font-40" style="width:20%; text-align: center" @click="developer()">i</text>
+      <text class="font-30" style="flex: 1; text-align: center" @click="scrollToTop()">Noti :: {{notis}}</text>
+      <text class="font-40" style="width:20%; text-align: center" @click="settings()">i</text>
     </div>
     <scroll id="scrollId" style="flex-direction: column;width: 100%;flex: 1" scroll-y="{{true}}">
       <text class="item" if="{{deleteOn && notis}}" @click="deleteAll()">Delete All</text>
@@ -24,6 +24,7 @@
 import app from '@system.app'
 import vibrator from '@system.vibrator' 
 import file from '@system.file'
+import storage from '@system.storage'
 import interconnect from '@system.interconnect'
 import prompt from '@system.prompt' 
 import router from '@system.router'
@@ -37,10 +38,23 @@ export default {
     deleteOn: false,
     maxSave: 40,
     receivedData: {},
+    setting: {},
   },
   onShow() {
     const self = this
     self.refreshList()
+
+    storage.get({
+      key: 'notiSetting',
+      success: function(getData) {
+        if(!getData) getData = '{"vibe":true,"doNotDisturb":false,"disturbFromT":"00","disturbFromM":"00","disturbToT":"00","disturbToM":"00"}'
+        let setting = JSON.parse(getData)
+        self.setting = setting
+      },
+      fail: function(getData, code) {
+        console.log(`getData fail, code = ${code}`)
+      }
+    })
 
     conn = interconnect.instance()
     conn.onmessage = async(data) => {
@@ -89,7 +103,7 @@ export default {
             buffer: self.dataProcess(self.receivedData[processedData.fileName].dataString),
             success: function() {
               // self.receivedText = `success noti!`
-              if(processedData.isEnd) {
+              if(self.canVibrate()) {
                 vibrator.vibrate({mode: 'long'})
                 vibrator.vibrate({mode: 'long'})
               }
@@ -167,8 +181,27 @@ export default {
       })
     } catch(e) {}
   },
-  developer() {
-    router.push({uri: "/pages/developer"})
+  settings() {
+    router.push({uri: "/pages/settings"})
+  },
+  canVibrate() {
+    if(!this.setting.vibe) return false
+    if(!this.setting.doNotDisturb) return true
+
+    const from = this.setting.disturbFromT+this.setting.disturbFromM
+    const to = this.setting.disturbToT+this.setting.disturbToM
+
+    const now = new Date()
+    const hour = now.getHours().toString().padStart(2, '0')
+    const minute = now.getMinutes().toString().padStart(2, '0')
+    const nowtime = hour+minute
+
+    if(  (from <= to &&  from <= nowtime && nowtime <= to )
+      || (from >  to && (from <= nowtime || nowtime <= to)) ) {
+      return false
+    }
+
+    return true
   },
   onDestroy() {
     app.terminate()
