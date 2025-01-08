@@ -114,7 +114,7 @@ export default {
     file.list({
       uri: 'internal://mass/noti',
       success: function(data) {
-        self.list = data.fileList
+        self.list = data.fileList.sort((a, b) => b.uri.localeCompare(a.uri))
         self.notis = self.list.length
       },
       fail: function(data, code) {
