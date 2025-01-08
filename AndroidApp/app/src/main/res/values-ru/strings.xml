@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">RW5Noti</string>
+    <string name="title_home">Home</string>
+    <string name="req_auth">Запрос разрешений для часов</string>
+    <string name="noti_test">Тест уведомлений</string>
+    <string name="connected">Часы подключены</string>
+    <string name="test_app">Тестовое приложение</string>
+    <string name="test_title">Заголовок</string>
+    <string name="test_text">Это тест уведомления.</string>
+    <string name="success">Успешно</string>
+    <string name="fail">Не удалось</string>
+    <string name="send_noti">Отправить уведомление</string>
+    <string name="open_app">Открытие приложения</string>
+    <string name="get_auth">Получение разрешений</string>
+    <string name="con_watch">Подключение часов</string>
+</resources>

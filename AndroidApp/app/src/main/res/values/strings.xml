@@ -1,6 +1,16 @@
 <resources>
     <string name="app_name">RW5Noti</string>
     <string name="title_home">Home</string>
-    <string name="title_message">Message</string>
-    <string name="title_notifications">Notifications</string>
+    <string name="req_auth">Request for Watch Permissions</string>
+    <string name="noti_test">Notification Test</string>
+    <string name="connected">connected</string>
+    <string name="test_app">Test App</string>
+    <string name="test_title">Title</string>
+    <string name="test_text">This is notification test.</string>
+    <string name="success"> success</string>
+    <string name="fail"> failed</string>
+    <string name="send_noti">Send notification</string>
+    <string name="open_app">Opening app</string>
+    <string name="get_auth">Authority acquisition</string>
+    <string name="con_watch">Connecting watch</string>
 </resources>

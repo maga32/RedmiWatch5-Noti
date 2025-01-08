@@ -28,6 +28,7 @@ import com.xiaomi.xms.wearable.message.MessageApi;
 import com.xiaomi.xms.wearable.node.Node;
 import com.xiaomi.xms.wearable.node.NodeApi;
 
+import org.duckdns.sunga.rw5noti.R;
 import org.duckdns.sunga.rw5noti.databinding.FragmentMessageBinding;
 
 import java.nio.charset.StandardCharsets;
@@ -99,7 +100,7 @@ public class HomeFragment extends Fragment {
         binding.sendMessage.setOnClickListener(v -> {
             if (curNode != null) {
                 // 테스트용 알림 만들기
-                String imgString = createNotificationImage(testAppIcon , "테스트앱", "타이틀", "알림 테스트입니다.");
+                String imgString = createNotificationImage(testAppIcon , getString(R.string.test_app), getString(R.string.test_title), getString(R.string.test_text));
 
                 System.out.println(imgString);
 
@@ -121,14 +122,14 @@ public class HomeFragment extends Fragment {
 
                             for(String chuck : chunkList) {
                                 messageApi.sendMessage(curNode.id, chuck.getBytes(StandardCharsets.UTF_8))
-                                    .addOnSuccessListener(aVoid -> Toast.makeText(getActivity(), "알림전송 성공", Toast.LENGTH_LONG).show())
-                                    .addOnFailureListener(e -> Toast.makeText(getActivity(), "알림전송 실패 : " + e.getMessage(), Toast.LENGTH_LONG).show());
+                                    .addOnSuccessListener(aVoid -> Toast.makeText(getActivity(), getString(R.string.send_noti)+" "+getString(R.string.success), Toast.LENGTH_LONG).show())
+                                    .addOnFailureListener(e -> Toast.makeText(getActivity(), getString(R.string.send_noti)+" "+getString(R.string.fail)+" : " + e.getMessage(), Toast.LENGTH_LONG).show());
                             }
 
                         }, 1500);
                     })
                     .addOnFailureListener(e -> {
-                        Toast.makeText(getActivity(), "앱열기 실패 : " + e.getMessage(), Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(), getString(R.string.open_app)+" "+getString(R.string.fail)+" : " + e.getMessage(), Toast.LENGTH_LONG).show();
                     });
             }
         });
@@ -141,9 +142,9 @@ public class HomeFragment extends Fragment {
                             for (Permission permission : permissions) {
                                 permissionGrantedList.append(permission.getName()).append(" ");
                             }
-                            Toast.makeText(getActivity(), "권한획득 : " + permissionGrantedList.toString(), Toast.LENGTH_LONG).show();
+                            Toast.makeText(getActivity(), getString(R.string.get_auth)+" : " + permissionGrantedList.toString(), Toast.LENGTH_LONG).show();
                         })
-                        .addOnFailureListener(e -> Toast.makeText(getActivity(), "권한요청 실패: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                        .addOnFailureListener(e -> Toast.makeText(getActivity(), getString(R.string.get_auth)+" "+getString(R.string.fail)+" : " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
         });
     }
@@ -153,10 +154,10 @@ public class HomeFragment extends Fragment {
                 .addOnSuccessListener(nodes -> {
                     if (nodes.size() > 0) {
                         curNode = nodes.get(0);
-                        binding.status.setText("연결된 워치 : " + curNode.toString());
+                        binding.status.setText(getString(R.string.connected) + " : " + curNode.toString());
                     }
                 })
-                .addOnFailureListener(e -> binding.status.setText("워치 연결 실패 : " + e.getMessage()));
+                .addOnFailureListener(e -> binding.status.setText(getString(R.string.con_watch)+" "+getString(R.string.fail)+" : " + e.getMessage()));
     }
 
     @Override

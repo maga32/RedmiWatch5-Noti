@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">RW5Noti</string>
+    <string name="title_home">Home</string>
+    <string name="req_auth">워치 권한 요청</string>
+    <string name="noti_test">알림 테스트</string>
+    <string name="connected">연결된 워치</string>
+    <string name="test_app">테스트앱</string>
+    <string name="test_title">타이틀</string>
+    <string name="test_text">알림 테스트입니다.</string>
+    <string name="success">성공</string>
+    <string name="fail">실패</string>
+    <string name="send_noti">알림전송</string>
+    <string name="open_app">앱열기</string>
+    <string name="get_auth">권한획득</string>
+    <string name="con_watch">워치 연결</string>
+</resources>

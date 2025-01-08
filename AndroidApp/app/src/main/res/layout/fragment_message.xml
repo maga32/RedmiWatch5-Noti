@@ -17,14 +17,14 @@
     <Button
         android:id="@+id/requestPermissions"
         android:layout_width="match_parent"
-        android:text="워치 권한 요청"
+        android:text="@string/req_auth"
         android:layout_height="wrap_content"/>
 
     <Button
         android:id="@+id/sendMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="알림 테스트"
+        android:text="@string/noti_test"
         />
 
     <androidx.recyclerview.widget.RecyclerView
