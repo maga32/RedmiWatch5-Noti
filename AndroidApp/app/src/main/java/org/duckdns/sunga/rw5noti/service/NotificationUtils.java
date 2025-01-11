@@ -5,13 +5,15 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.drawable.AdaptiveIconDrawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.util.Base64;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 
 import java.io.ByteArrayOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class NotificationUtils {
 
@@ -37,12 +39,28 @@ public class NotificationUtils {
 
         // 앱 아이콘 크기 설정
         int iconSize = 80;
-        Bitmap iconBitmap = ((BitmapDrawable) appIcon).getBitmap();
-        Bitmap iconScaled = Bitmap.createScaledBitmap(iconBitmap, iconSize, iconSize, false);
+
+        // 아이콘 처리
+        Bitmap iconBitmap = null;
+
+        // 기종에 따른 아이콘 처리 분류 BitmapDrawable / AdaptiveIconDrawable 처리
+        if (appIcon instanceof BitmapDrawable) {
+            iconBitmap = ((BitmapDrawable) appIcon).getBitmap();
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && appIcon instanceof AdaptiveIconDrawable) {
+            Bitmap tmpBitmap = Bitmap.createBitmap(iconSize, iconSize, Bitmap.Config.ARGB_8888);
+            Canvas tmpCanvas = new Canvas(tmpBitmap);
+            appIcon.setBounds(0, 0, tmpCanvas.getWidth(), tmpCanvas.getHeight());
+            appIcon.draw(tmpCanvas);
+            iconBitmap = tmpBitmap;
+        }
 
         // 앱 아이콘을 캔버스에 그리기
-        Rect iconRect = new Rect(20, 20, 20 + iconSize, 20 + iconSize);
-        canvas.drawBitmap(iconScaled, null, iconRect, paint);
+        if (iconBitmap != null) {
+            Bitmap iconScaled = Bitmap.createScaledBitmap(iconBitmap, iconSize, iconSize, false);
+
+            Rect iconRect = new Rect(20, 20, 20 + iconSize, 20 + iconSize);
+            canvas.drawBitmap(iconScaled, null, iconRect, paint);
+        }
 
         // 앱 이름 텍스트 그리기
         canvas.drawText(appName, 120f, 50f, paint);
