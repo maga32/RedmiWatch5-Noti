@@ -15,6 +15,7 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import org.duckdns.sunga.rw5noti.databinding.ActivityMainBinding;
+import org.duckdns.sunga.rw5noti.service.ErrorReport;
 
 import java.util.Set;
 
@@ -25,6 +26,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Thread.setDefaultUncaughtExceptionHandler(new ErrorReport(this));
 
         // 알림 리스너 서비스 권한 요청
         if (!permissionGranted()) {
